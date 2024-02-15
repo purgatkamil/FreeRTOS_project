@@ -22,6 +22,14 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <string.h>
+#include <stdio.h>
+
+//--------------------------------OWN LIBRARIES--------------------------------
+
+
+//-----------------------------------------------------------------------------
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +48,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -47,12 +56,25 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+int __io_putchar(int ch)
+{
+    if (ch == '\n') {
+        uint8_t ch2 = '\r';
+        HAL_UART_Transmit(&huart2, &ch2, 1, HAL_MAX_DELAY);
+    }
+
+    HAL_UART_Transmit(&huart2, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
+    return 1;
+}
 
 /* USER CODE END 0 */
 
@@ -83,7 +105,46 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
+#define LINE_MAX_LENGTH	80
+
+static char line_buffer[LINE_MAX_LENGTH + 1];
+static uint32_t line_length;
+
+void line_append(uint8_t value)
+{
+	if (value == '\r' || value == '\n') {
+		// odebraliśmy znak końca linii
+		if (line_length > 0) {
+			// jeśli bufor nie jest pusty to dodajemy 0 na końcu linii
+			line_buffer[line_length] = '\0';
+			// przetwarzamy dane
+			if (strcmp(line_buffer, "on") == 0) {
+				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+			} else if (strcmp(line_buffer, "off") == 0) {
+				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+			} else {
+				printf("Nieznane polecenie: %s\n", line_buffer);
+			}
+			// zaczynamy zbieranie danych od nowa
+			line_length = 0;
+		}
+	}
+	else {
+		if (line_length >= LINE_MAX_LENGTH) {
+			// za dużo danych, usuwamy wszystko co odebraliśmy dotychczas
+			line_length = 0;
+		}
+		// dopisujemy wartość do bufora
+		line_buffer[line_length++] = value;
+	}
+}
+
+  const char message[] = "Hello world!\r\n";
+  printf(message);
 
   /* USER CODE END 2 */
 
@@ -91,6 +152,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  uint8_t value;
+	  if (HAL_UART_Receive(&huart2, &value, 1, 0) == HAL_OK){ line_append(value); }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -140,6 +204,69 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LD2_Pin */
+  GPIO_InitStruct.Pin = LD2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
