@@ -1,0 +1,1 @@
+Projekt ćwiczeniowy z obsługi FreeRTOS na STM32L476R
