@@ -65,14 +65,14 @@ osThreadId_t Task2_UsartReceivingHandle;
 const osThreadAttr_t Task2_UsartReceiving_attributes = {
   .name = "Task2_UsartReceiving",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Task3_CommandDetection */
 osThreadId_t Task3_CommandDetectionHandle;
 const osThreadAttr_t Task3_CommandDetection_attributes = {
   .name = "Task3_CommandDetection",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for Queue1_Commands */
 osMessageQueueId_t Queue1_CommandsHandle;
@@ -162,7 +162,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of Queue1_Commands */
-  Queue1_CommandsHandle = osMessageQueueNew (10, sizeof(char *), &Queue1_Commands_attributes);
+  Queue1_CommandsHandle = osMessageQueueNew (10, 10, &Queue1_Commands_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -346,14 +346,13 @@ void UsartReceiving(void *argument)
 	static uint32_t line_length;
 	static uint8_t value;
 
-    char receivedLine[MAX_LENGTH_OF_LINE_RECEIVED_BY_USART + 1]; // +1 for null terminator
+    static char receivedLine[MAX_LENGTH_OF_LINE_RECEIVED_BY_USART + 1]; // +1 for null terminator
 
 
   /* Infinite loop */
   for(;;)
   {
 
-	  int i = 10 * sizeof(char*);
 	  if (HAL_UART_Receive(&huart2, &value, 1, 0) == HAL_OK){
 	  		if (value == '\r' || value == '\n') {
 	  			// end of line character received
@@ -363,7 +362,9 @@ void UsartReceiving(void *argument)
 	  				// passing the buffer to CommendDetection Task by queue
 	  			    strncpy(receivedLine, line_buffer, line_length);
 	  			    receivedLine[line_length] = '\0'; // Ensure null termination
-	  				osMessageQueuePut(Queue1_CommandsHandle, &receivedLine, 0, 200);
+	  				osMessageQueuePut(Queue1_CommandsHandle, receivedLine, 0, 200);
+	  				int x = osMessageQueueGetCapacity(Queue1_CommandsHandle);
+	  				int y = osMessageQueueGetMsgSize(Queue1_CommandsHandle);
 	  				// starting data collection again
 	  				line_length = 0;
 	  			}
@@ -393,14 +394,16 @@ void UsartReceiving(void *argument)
 void CommandDetection(void *argument)
 {
   /* USER CODE BEGIN CommandDetection */
-	char ReceivedValue[MAX_LENGTH_OF_LINE_RECEIVED_BY_USART + 1];
 
+	char ReceivedValue[MAX_LENGTH_OF_LINE_RECEIVED_BY_USART + 1];
   /* Infinite loop */
   for(;;){
-	  osMessageQueueGet(Queue1_CommandsHandle, &ReceivedValue, 0, osWaitForever);
-	  if (strcmp(ReceivedValue, "on") == 0){
+
+	 osMessageQueueGet(Queue1_CommandsHandle, ReceivedValue, 0, osWaitForever);
+	  //ReceivedValue = osMessageGet(Queue1_CommandsHandle, osWaitForever)
+	  if (strcmp(ReceivedValue, "led_on") == 0){
 		  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-	  }else if (strcmp(ReceivedValue, "off") == 0) {
+	  }else if (strcmp(ReceivedValue, "led_off") == 0) {
 		  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 	  } else {
 		  printf("Nieznane polecenie: %s\n", ReceivedValue);
