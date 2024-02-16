@@ -41,6 +41,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define MAX_LENGTH_OF_LINE_RECEIVED_BY_USART 10
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -58,12 +60,24 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for myTask02 */
-osThreadId_t myTask02Handle;
-const osThreadAttr_t myTask02_attributes = {
-  .name = "myTask02",
+/* Definitions for Task2_UsartReceiving */
+osThreadId_t Task2_UsartReceivingHandle;
+const osThreadAttr_t Task2_UsartReceiving_attributes = {
+  .name = "Task2_UsartReceiving",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for Task3_CommandDetection */
+osThreadId_t Task3_CommandDetectionHandle;
+const osThreadAttr_t Task3_CommandDetection_attributes = {
+  .name = "Task3_CommandDetection",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for Queue1_Commands */
+osMessageQueueId_t Queue1_CommandsHandle;
+const osMessageQueueAttr_t Queue1_Commands_attributes = {
+  .name = "Queue1_Commands"
 };
 /* USER CODE BEGIN PV */
 
@@ -74,7 +88,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void *argument);
-void StartTask02(void *argument);
+void UsartReceiving(void *argument);
+void CommandDetection(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -127,42 +142,6 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-#define LINE_MAX_LENGTH	80
-
-static char line_buffer[LINE_MAX_LENGTH + 1];
-static uint32_t line_length;
-
-void line_append(uint8_t value)
-{
-	if (value == '\r' || value == '\n') {
-		// odebraliśmy znak końca linii
-		if (line_length > 0) {
-			// jeśli bufor nie jest pusty to dodajemy 0 na końcu linii
-			line_buffer[line_length] = '\0';
-			// przetwarzamy dane
-			if (strcmp(line_buffer, "on") == 0) {
-				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-			} else if (strcmp(line_buffer, "off") == 0) {
-				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-			} else {
-				printf("Nieznane polecenie: %s\n", line_buffer);
-			}
-			// zaczynamy zbieranie danych od nowa
-			line_length = 0;
-		}
-	}
-	else {
-		if (line_length >= LINE_MAX_LENGTH) {
-			// za dużo danych, usuwamy wszystko co odebraliśmy dotychczas
-			line_length = 0;
-		}
-		// dopisujemy wartość do bufora
-		line_buffer[line_length++] = value;
-	}
-}
-
-  const char message[] = "Hello world!\r\n";
-  printf(message);
 
   /* USER CODE END 2 */
 
@@ -181,6 +160,10 @@ void line_append(uint8_t value)
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of Queue1_Commands */
+  Queue1_CommandsHandle = osMessageQueueNew (10, sizeof(char *), &Queue1_Commands_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -189,8 +172,11 @@ void line_append(uint8_t value)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* creation of myTask02 */
-  myTask02Handle = osThreadNew(StartTask02, NULL, &myTask02_attributes);
+  /* creation of Task2_UsartReceiving */
+  Task2_UsartReceivingHandle = osThreadNew(UsartReceiving, NULL, &Task2_UsartReceiving_attributes);
+
+  /* creation of Task3_CommandDetection */
+  Task3_CommandDetectionHandle = osThreadNew(CommandDetection, NULL, &Task3_CommandDetection_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -208,8 +194,6 @@ void line_append(uint8_t value)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  uint8_t value;
-	  if (HAL_UART_Receive(&huart2, &value, 1, 0) == HAL_OK){ line_append(value); }
 
     /* USER CODE END WHILE */
 
@@ -347,22 +331,105 @@ void StartDefaultTask(void *argument)
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_StartTask02 */
+/* USER CODE BEGIN Header_UsartReceiving */
 /**
-* @brief Function implementing the myTask02 thread.
+* @brief Function implementing the Task2_UsartReceiving thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask02 */
-void StartTask02(void *argument)
+/* USER CODE END Header_UsartReceiving */
+void UsartReceiving(void *argument)
 {
-  /* USER CODE BEGIN StartTask02 */
+  /* USER CODE BEGIN UsartReceiving */
+
+	static char line_buffer[MAX_LENGTH_OF_LINE_RECEIVED_BY_USART + 1];
+	static uint32_t line_length;
+	static uint8_t value;
+
+    char receivedLine[MAX_LENGTH_OF_LINE_RECEIVED_BY_USART + 1]; // +1 for null terminator
+
+
   /* Infinite loop */
   for(;;)
   {
+
+	  int i = 10 * sizeof(char*);
+	  if (HAL_UART_Receive(&huart2, &value, 1, 0) == HAL_OK){
+	  		if (value == '\r' || value == '\n') {
+	  			// end of line character received
+	  			if (line_length > 0){
+	  				// if the buffer is not empty, we add the \0 character at the end of the line
+	  				line_buffer[line_length] = '\0';
+	  				// passing the buffer to CommendDetection Task by queue
+	  			    strncpy(receivedLine, line_buffer, line_length);
+	  			    receivedLine[line_length] = '\0'; // Ensure null termination
+	  				osMessageQueuePut(Queue1_CommandsHandle, &receivedLine, 0, 200);
+	  				// starting data collection again
+	  				line_length = 0;
+	  			}
+	  		}
+	  		else {
+	  			if (line_length >= MAX_LENGTH_OF_LINE_RECEIVED_BY_USART) {
+	  				// too much data, we delete what we have collected so far
+	  				line_length = 0;
+	  			}
+	  			// we add the value to the buffer
+	  			line_buffer[line_length++] = value;
+	  		}
+	  	}
+
     osDelay(1);
   }
-  /* USER CODE END StartTask02 */
+  /* USER CODE END UsartReceiving */
+}
+
+/* USER CODE BEGIN Header_CommandDetection */
+/**
+* @brief Function implementing the Task3_CommandDetection thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_CommandDetection */
+void CommandDetection(void *argument)
+{
+  /* USER CODE BEGIN CommandDetection */
+	char ReceivedValue[MAX_LENGTH_OF_LINE_RECEIVED_BY_USART + 1];
+
+  /* Infinite loop */
+  for(;;){
+	  osMessageQueueGet(Queue1_CommandsHandle, &ReceivedValue, 0, osWaitForever);
+	  if (strcmp(ReceivedValue, "on") == 0){
+		  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+	  }else if (strcmp(ReceivedValue, "off") == 0) {
+		  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+	  } else {
+		  printf("Nieznane polecenie: %s\n", ReceivedValue);
+	  }
+
+    osDelay(1);
+  }
+  /* USER CODE END CommandDetection */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM7 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM7) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**
