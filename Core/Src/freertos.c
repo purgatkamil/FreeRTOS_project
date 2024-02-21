@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <usart.h>
 #include <tim.h>
+#include "ir.h"
 
 /* USER CODE END Includes */
 
@@ -118,15 +119,41 @@ const osThreadAttr_t Task9_MoveBackward_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for Task10_IR_CommandsDetection */
+osThreadId_t Task10_IR_CommandsDetectionHandle;
+const osThreadAttr_t Task10_IR_CommandsDetection_attributes = {
+  .name = "Task10_IR_CommandsDetection",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for Queue1_Commands */
 osMessageQueueId_t Queue1_CommandsHandle;
 const osMessageQueueAttr_t Queue1_Commands_attributes = {
   .name = "Queue1_Commands"
 };
+/* Definitions for Semaphore1_IR_Interrupt */
+osSemaphoreId_t Semaphore1_IR_InterruptHandle;
+const osSemaphoreAttr_t Semaphore1_IR_Interrupt_attributes = {
+  .name = "Semaphore1_IR_Interrupt"
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim == &htim3)
+  {
+	osSemaphoreRelease(Semaphore1_IR_InterruptHandle);
+    switch (HAL_TIM_GetActiveChannel(&htim3))
+    {
+      case HAL_TIM_ACTIVE_CHANNEL_1:
+        ir_tim_interrupt();
+        break;
+      default:
+        break;
+    }
+  }
+}
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -138,6 +165,7 @@ void StopMoving(void *argument);
 void TurnLeft(void *argument);
 void TurnRight(void *argument);
 void MoveBackward(void *argument);
+void IR_CommandsDetection(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -154,6 +182,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* creation of Semaphore1_IR_Interrupt */
+  Semaphore1_IR_InterruptHandle = osSemaphoreNew(1, 1, &Semaphore1_IR_Interrupt_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -199,6 +231,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of Task9_MoveBackward */
   //Task9_MoveBackwardHandle = osThreadNew(MoveBackward, NULL, &Task9_MoveBackward_attributes);
 
+  /* creation of Task10_IR_CommandsDetection */
+  Task10_IR_CommandsDetectionHandle = osThreadNew(IR_CommandsDetection, NULL, &Task10_IR_CommandsDetection_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -243,40 +278,9 @@ void CommandDetection(void *argument)
 		 osMessageQueueGet(Queue1_CommandsHandle, ReceivedValue, 0, osWaitForever);
 		  //ReceivedValue = osMessageGet(Queue1_CommandsHandle, osWaitForever)
 		  if (strcmp(ReceivedValue, "on") == 0){
-			  //HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-			  osThreadTerminate(Task6_StopMovingHandle);
-			  osThreadTerminate(Task7_TurnLeftHandle);
-			  osThreadTerminate(Task8_TurnRightHandle);
-			  osThreadTerminate(Task9_MoveBackwardHandle);
-			  Task5_MoveForwardHandle = osThreadNew(MoveForward, NULL, &Task5_MoveForward_attributes);
+			  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 		  }else if (strcmp(ReceivedValue, "off") == 0) {
-			  osThreadTerminate(Task5_MoveForwardHandle);
-			  osThreadTerminate(Task7_TurnLeftHandle);
-			  osThreadTerminate(Task8_TurnRightHandle);
-			  osThreadTerminate(Task9_MoveBackwardHandle);
-			  Task6_StopMovingHandle = osThreadNew(StopMoving, NULL, &Task6_StopMoving_attributes);
-
-		  }else if(strcmp(ReceivedValue, "left") == 0){
-			  osThreadTerminate(Task5_MoveForwardHandle);
-			  osThreadTerminate(Task6_StopMovingHandle);
-			  osThreadTerminate(Task8_TurnRightHandle);
-			  osThreadTerminate(Task9_MoveBackwardHandle);
-			  Task7_TurnLeftHandle = osThreadNew(TurnLeft, NULL, &Task7_TurnLeft_attributes);
-
-		  }else if(strcmp(ReceivedValue, "right") == 0){
-			  osThreadTerminate(Task5_MoveForwardHandle);
-			  osThreadTerminate(Task6_StopMovingHandle);
-			  osThreadTerminate(Task7_TurnLeftHandle);
-			  osThreadTerminate(Task9_MoveBackwardHandle);
-			  Task8_TurnRightHandle = osThreadNew(TurnRight, NULL, &Task8_TurnRight_attributes);
-
-		  }else if(strcmp(ReceivedValue, "back") == 0){
-			  osThreadTerminate(Task5_MoveForwardHandle);
-			  osThreadTerminate(Task6_StopMovingHandle);
-			  osThreadTerminate(Task7_TurnLeftHandle);
-			  osThreadTerminate(Task8_TurnRightHandle);
-			  Task9_MoveBackwardHandle = osThreadNew(MoveBackward, NULL, &Task9_MoveBackward_attributes);
-
+			  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		  }else {
 			  printf("Nieznane polecenie: %s\n", ReceivedValue);
 		  }
@@ -394,6 +398,7 @@ void MoveForward(void *argument)
 
     osDelay(1);
   }
+  osThreadTerminate(NULL);
   /* USER CODE END MoveForward */
 }
 
@@ -416,6 +421,7 @@ void StopMoving(void *argument)
 	HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
     osDelay(1);
   }
+  osThreadTerminate(NULL);
   /* USER CODE END StopMoving */
 }
 
@@ -438,6 +444,7 @@ void TurnLeft(void *argument)
 		HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_RESET);
 		osDelay(1);
   }
+  osThreadTerminate(NULL);
   /* USER CODE END TurnLeft */
 }
 
@@ -460,6 +467,7 @@ void TurnRight(void *argument)
 		HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
 		osDelay(1);
   }
+  osThreadTerminate(NULL);
   /* USER CODE END TurnRight */
 }
 
@@ -482,7 +490,77 @@ void MoveBackward(void *argument)
 	HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_RESET);
     osDelay(1);
   }
+  osThreadTerminate(NULL);
   /* USER CODE END MoveBackward */
+}
+
+/* USER CODE BEGIN Header_IR_CommandsDetection */
+/**
+* @brief Function implementing the Task10_IR_CommandsDetection thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_IR_CommandsDetection */
+void IR_CommandsDetection(void *argument)
+{
+  /* USER CODE BEGIN IR_CommandsDetection */
+  /* Infinite loop */
+  for(;;)
+  {
+
+	  	if(osSemaphoreGetCount(Semaphore1_IR_InterruptHandle) != 0){
+
+	  		osSemaphoreAcquire(Semaphore1_IR_InterruptHandle, 0);
+
+	  		int value = ir_read();
+
+	  		switch (value) {
+	  			  case IR_CODE_PLUS:
+	  					  osThreadTerminate(Task6_StopMovingHandle);
+	  					  osThreadTerminate(Task7_TurnLeftHandle);
+	  					  osThreadTerminate(Task8_TurnRightHandle);
+	  					  osThreadTerminate(Task9_MoveBackwardHandle);
+	  					  Task5_MoveForwardHandle = osThreadNew(MoveForward, NULL, &Task5_MoveForward_attributes);
+	  			      break;
+	  			    case IR_CODE_FORWARD:
+	  					  osThreadTerminate(Task5_MoveForwardHandle);
+	  					  osThreadTerminate(Task6_StopMovingHandle);
+	  					  osThreadTerminate(Task7_TurnLeftHandle);
+	  					  osThreadTerminate(Task9_MoveBackwardHandle);
+	  					  Task8_TurnRightHandle = osThreadNew(TurnRight, NULL, &Task8_TurnRight_attributes);
+	  			      break;
+	  			    case IR_CODE_MINUS:
+	  					  osThreadTerminate(Task5_MoveForwardHandle);
+	  					  osThreadTerminate(Task6_StopMovingHandle);
+	  					  osThreadTerminate(Task7_TurnLeftHandle);
+	  					  osThreadTerminate(Task8_TurnRightHandle);
+	  					  Task9_MoveBackwardHandle = osThreadNew(MoveBackward, NULL, &Task9_MoveBackward_attributes);
+	  			      break;
+	  			    case IR_CODE_REWIND:
+	  					  osThreadTerminate(Task5_MoveForwardHandle);
+	  					  osThreadTerminate(Task6_StopMovingHandle);
+	  					  osThreadTerminate(Task8_TurnRightHandle);
+	  					  osThreadTerminate(Task9_MoveBackwardHandle);
+	  					  Task7_TurnLeftHandle = osThreadNew(TurnLeft, NULL, &Task7_TurnLeft_attributes);
+	  			      break;
+	  			    case IR_CODE_PLAY:
+	  					  osThreadTerminate(Task5_MoveForwardHandle);
+	  					  osThreadTerminate(Task7_TurnLeftHandle);
+	  					  osThreadTerminate(Task8_TurnRightHandle);
+	  					  osThreadTerminate(Task9_MoveBackwardHandle);
+	  					  Task6_StopMovingHandle = osThreadNew(StopMoving, NULL, &Task6_StopMoving_attributes);
+	  			      break;
+	  			    default:
+	  			    	printf("Inna komenda");
+	  			    	break;
+
+	  			    }
+	  	}
+
+    osDelay(1);
+  }
+
+  /* USER CODE END IR_CommandsDetection */
 }
 
 /* Private application code --------------------------------------------------*/

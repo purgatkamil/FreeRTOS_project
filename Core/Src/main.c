@@ -28,6 +28,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include "ir.h"
 
 //--------------------------------OWN LIBRARIES--------------------------------
 
@@ -111,9 +112,13 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_TIM2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(Enable_A_GPIO_Port, Enable_A_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(Enable_B_GPIO_Port, Enable_B_Pin, GPIO_PIN_SET);
+
+  ir_init();
+
 
 
   /* USER CODE END 2 */
@@ -189,6 +194,8 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+
 
 /* USER CODE END 4 */
 

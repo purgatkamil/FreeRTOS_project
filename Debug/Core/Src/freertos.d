@@ -38,7 +38,9 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
- ../Core/Inc/usart.h ../Core/Inc/main.h ../Core/Inc/tim.h
+ ../Core/Inc/usart.h ../Core/Inc/main.h ../Core/Inc/tim.h \
+ ../Core/Inc/ir.h \
+ ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l476xx.h
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
@@ -82,3 +84,5 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
 ../Core/Inc/usart.h:
 ../Core/Inc/main.h:
 ../Core/Inc/tim.h:
+../Core/Inc/ir.h:
+../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l476xx.h:
