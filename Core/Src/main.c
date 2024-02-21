@@ -112,7 +112,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_GPIO_WritePin(Enable_A_GPIO_Port, Enable_A_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(Enable_B_GPIO_Port, Enable_B_Pin, GPIO_PIN_SET);
 
 
   /* USER CODE END 2 */

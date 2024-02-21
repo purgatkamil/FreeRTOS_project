@@ -74,7 +74,7 @@ osThreadId_t Task4_UltrasoundSensorHandle;
 const osThreadAttr_t Task4_UltrasoundSensor_attributes = {
   .name = "Task4_UltrasoundSensor",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Task2_UsartReceiving */
 osThreadId_t Task2_UsartReceivingHandle;
@@ -97,6 +97,27 @@ const osThreadAttr_t Task6_StopMoving_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for Task7_TurnLeft */
+osThreadId_t Task7_TurnLeftHandle;
+const osThreadAttr_t Task7_TurnLeft_attributes = {
+  .name = "Task7_TurnLeft",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Task8_TurnRight */
+osThreadId_t Task8_TurnRightHandle;
+const osThreadAttr_t Task8_TurnRight_attributes = {
+  .name = "Task8_TurnRight",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Task9_MoveBackward */
+osThreadId_t Task9_MoveBackwardHandle;
+const osThreadAttr_t Task9_MoveBackward_attributes = {
+  .name = "Task9_MoveBackward",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for Queue1_Commands */
 osMessageQueueId_t Queue1_CommandsHandle;
 const osMessageQueueAttr_t Queue1_Commands_attributes = {
@@ -114,6 +135,9 @@ void UltrasoundSensor(void *argument);
 void UsartReceiving(void *argument);
 void MoveForward(void *argument);
 void StopMoving(void *argument);
+void TurnLeft(void *argument);
+void TurnRight(void *argument);
+void MoveBackward(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -166,6 +190,15 @@ void MX_FREERTOS_Init(void) {
   /* creation of Task6_StopMoving */
   //Task6_StopMovingHandle = osThreadNew(StopMoving, NULL, &Task6_StopMoving_attributes);
 
+  /* creation of Task7_TurnLeft */
+  //Task7_TurnLeftHandle = osThreadNew(TurnLeft, NULL, &Task7_TurnLeft_attributes);
+
+  /* creation of Task8_TurnRight */
+  //Task8_TurnRightHandle = osThreadNew(TurnRight, NULL, &Task8_TurnRight_attributes);
+
+  /* creation of Task9_MoveBackward */
+  //Task9_MoveBackwardHandle = osThreadNew(MoveBackward, NULL, &Task9_MoveBackward_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -212,12 +245,39 @@ void CommandDetection(void *argument)
 		  if (strcmp(ReceivedValue, "on") == 0){
 			  //HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 			  osThreadTerminate(Task6_StopMovingHandle);
+			  osThreadTerminate(Task7_TurnLeftHandle);
+			  osThreadTerminate(Task8_TurnRightHandle);
+			  osThreadTerminate(Task9_MoveBackwardHandle);
 			  Task5_MoveForwardHandle = osThreadNew(MoveForward, NULL, &Task5_MoveForward_attributes);
 		  }else if (strcmp(ReceivedValue, "off") == 0) {
 			  osThreadTerminate(Task5_MoveForwardHandle);
+			  osThreadTerminate(Task7_TurnLeftHandle);
+			  osThreadTerminate(Task8_TurnRightHandle);
+			  osThreadTerminate(Task9_MoveBackwardHandle);
 			  Task6_StopMovingHandle = osThreadNew(StopMoving, NULL, &Task6_StopMoving_attributes);
 
-		  } else {
+		  }else if(strcmp(ReceivedValue, "left") == 0){
+			  osThreadTerminate(Task5_MoveForwardHandle);
+			  osThreadTerminate(Task6_StopMovingHandle);
+			  osThreadTerminate(Task8_TurnRightHandle);
+			  osThreadTerminate(Task9_MoveBackwardHandle);
+			  Task7_TurnLeftHandle = osThreadNew(TurnLeft, NULL, &Task7_TurnLeft_attributes);
+
+		  }else if(strcmp(ReceivedValue, "right") == 0){
+			  osThreadTerminate(Task5_MoveForwardHandle);
+			  osThreadTerminate(Task6_StopMovingHandle);
+			  osThreadTerminate(Task7_TurnLeftHandle);
+			  osThreadTerminate(Task9_MoveBackwardHandle);
+			  Task8_TurnRightHandle = osThreadNew(TurnRight, NULL, &Task8_TurnRight_attributes);
+
+		  }else if(strcmp(ReceivedValue, "back") == 0){
+			  osThreadTerminate(Task5_MoveForwardHandle);
+			  osThreadTerminate(Task6_StopMovingHandle);
+			  osThreadTerminate(Task7_TurnLeftHandle);
+			  osThreadTerminate(Task8_TurnRightHandle);
+			  Task9_MoveBackwardHandle = osThreadNew(MoveBackward, NULL, &Task9_MoveBackward_attributes);
+
+		  }else {
 			  printf("Nieznane polecenie: %s\n", ReceivedValue);
 		  }
 
@@ -323,15 +383,14 @@ void UsartReceiving(void *argument)
 void MoveForward(void *argument)
 {
   /* USER CODE BEGIN MoveForward */
-	HAL_GPIO_WritePin(Enable_A_GPIO_Port, Enable_A_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(Enable_B_GPIO_Port, Enable_B_Pin, GPIO_PIN_SET);
+
   /* Infinite loop */
   for(;;)
   {
-    HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
 
     osDelay(1);
   }
@@ -355,9 +414,75 @@ void StopMoving(void *argument)
 	HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
-    osDelay(2000);
+    osDelay(1);
   }
   /* USER CODE END StopMoving */
+}
+
+/* USER CODE BEGIN Header_TurnLeft */
+/**
+* @brief Function implementing the Task7_TurnLeft thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TurnLeft */
+void TurnLeft(void *argument)
+{
+  /* USER CODE BEGIN TurnLeft */
+  /* Infinite loop */
+  for(;;)
+  {
+		HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_RESET);
+		osDelay(1);
+  }
+  /* USER CODE END TurnLeft */
+}
+
+/* USER CODE BEGIN Header_TurnRight */
+/**
+* @brief Function implementing the Task8_TurnRight thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TurnRight */
+void TurnRight(void *argument)
+{
+  /* USER CODE BEGIN TurnRight */
+  /* Infinite loop */
+  for(;;)
+  {
+		HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
+		osDelay(1);
+  }
+  /* USER CODE END TurnRight */
+}
+
+/* USER CODE BEGIN Header_MoveBackward */
+/**
+* @brief Function implementing the Task9_MoveBackward thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_MoveBackward */
+void MoveBackward(void *argument)
+{
+  /* USER CODE BEGIN MoveBackward */
+  /* Infinite loop */
+  for(;;)
+  {
+	HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_RESET);
+    osDelay(1);
+  }
+  /* USER CODE END MoveBackward */
 }
 
 /* Private application code --------------------------------------------------*/
