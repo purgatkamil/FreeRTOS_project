@@ -57,8 +57,20 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define Engine_IN4_Pin GPIO_PIN_0
+#define Engine_IN4_GPIO_Port GPIOC
+#define Engine_IN3_Pin GPIO_PIN_1
+#define Engine_IN3_GPIO_Port GPIOC
+#define Engine_IN1_Pin GPIO_PIN_4
+#define Engine_IN1_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define Engine_IN2_Pin GPIO_PIN_0
+#define Engine_IN2_GPIO_Port GPIOB
+#define Enable_A_Pin GPIO_PIN_10
+#define Enable_A_GPIO_Port GPIOA
+#define Enable_B_Pin GPIO_PIN_3
+#define Enable_B_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

@@ -1,5 +1,7 @@
-../Core/Src/freertos.c:109:6:MX_FREERTOS_Init	1
-../Core/Src/freertos.c:164:6:StartDefaultTask	1
-../Core/Src/freertos.c:182:6:CommandDetection	3
-../Core/Src/freertos.c:211:6:UltrasoundSensor	1
-../Core/Src/freertos.c:238:6:UsartReceiving	6
+../Core/Src/freertos.c:125:6:MX_FREERTOS_Init	1
+../Core/Src/freertos.c:186:6:StartDefaultTask	1
+../Core/Src/freertos.c:204:6:CommandDetection	3
+../Core/Src/freertos.c:237:6:UltrasoundSensor	1
+../Core/Src/freertos.c:265:6:UsartReceiving	6
+../Core/Src/freertos.c:323:6:MoveForward	1
+../Core/Src/freertos.c:348:6:StopMoving	1

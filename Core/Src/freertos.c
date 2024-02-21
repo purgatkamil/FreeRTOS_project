@@ -83,6 +83,20 @@ const osThreadAttr_t Task2_UsartReceiving_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for Task5_MoveForward */
+osThreadId_t Task5_MoveForwardHandle;
+const osThreadAttr_t Task5_MoveForward_attributes = {
+  .name = "Task5_MoveForward",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Task6_StopMoving */
+osThreadId_t Task6_StopMovingHandle;
+const osThreadAttr_t Task6_StopMoving_attributes = {
+  .name = "Task6_StopMoving",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for Queue1_Commands */
 osMessageQueueId_t Queue1_CommandsHandle;
 const osMessageQueueAttr_t Queue1_Commands_attributes = {
@@ -98,6 +112,8 @@ void StartDefaultTask(void *argument);
 void CommandDetection(void *argument);
 void UltrasoundSensor(void *argument);
 void UsartReceiving(void *argument);
+void MoveForward(void *argument);
+void StopMoving(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -144,6 +160,12 @@ void MX_FREERTOS_Init(void) {
   /* creation of Task2_UsartReceiving */
   Task2_UsartReceivingHandle = osThreadNew(UsartReceiving, NULL, &Task2_UsartReceiving_attributes);
 
+  /* creation of Task5_MoveForward */
+  //Task5_MoveForwardHandle = osThreadNew(MoveForward, NULL, &Task5_MoveForward_attributes);
+
+  /* creation of Task6_StopMoving */
+  //Task6_StopMovingHandle = osThreadNew(StopMoving, NULL, &Task6_StopMoving_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -188,9 +210,13 @@ void CommandDetection(void *argument)
 		 osMessageQueueGet(Queue1_CommandsHandle, ReceivedValue, 0, osWaitForever);
 		  //ReceivedValue = osMessageGet(Queue1_CommandsHandle, osWaitForever)
 		  if (strcmp(ReceivedValue, "on") == 0){
-			  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+			  //HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+			  osThreadTerminate(Task6_StopMovingHandle);
+			  Task5_MoveForwardHandle = osThreadNew(MoveForward, NULL, &Task5_MoveForward_attributes);
 		  }else if (strcmp(ReceivedValue, "off") == 0) {
-			  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+			  osThreadTerminate(Task5_MoveForwardHandle);
+			  Task6_StopMovingHandle = osThreadNew(StopMoving, NULL, &Task6_StopMoving_attributes);
+
 		  } else {
 			  printf("Nieznane polecenie: %s\n", ReceivedValue);
 		  }
@@ -285,6 +311,53 @@ void UsartReceiving(void *argument)
 
 	  osThreadTerminate(NULL);
   /* USER CODE END UsartReceiving */
+}
+
+/* USER CODE BEGIN Header_MoveForward */
+/**
+* @brief Function implementing the Task5_MoveForward thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_MoveForward */
+void MoveForward(void *argument)
+{
+  /* USER CODE BEGIN MoveForward */
+	HAL_GPIO_WritePin(Enable_A_GPIO_Port, Enable_A_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(Enable_B_GPIO_Port, Enable_B_Pin, GPIO_PIN_SET);
+  /* Infinite loop */
+  for(;;)
+  {
+    HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_RESET);
+
+    osDelay(1);
+  }
+  /* USER CODE END MoveForward */
+}
+
+/* USER CODE BEGIN Header_StopMoving */
+/**
+* @brief Function implementing the Task6_StopMoving thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StopMoving */
+void StopMoving(void *argument)
+{
+  /* USER CODE BEGIN StopMoving */
+  /* Infinite loop */
+  for(;;)
+  {
+	HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
+    osDelay(2000);
+  }
+  /* USER CODE END StopMoving */
 }
 
 /* Private application code --------------------------------------------------*/
