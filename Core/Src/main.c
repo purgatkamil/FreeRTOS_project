@@ -29,6 +29,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "ir.h"
+#include "engine.h"
 
 //--------------------------------OWN LIBRARIES--------------------------------
 
@@ -114,8 +115,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(Enable_A_GPIO_Port, Enable_A_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(Enable_B_GPIO_Port, Enable_B_Pin, GPIO_PIN_SET);
+  EnginesInit(Enable_A_GPIO_Port, Enable_A_Pin, Enable_B_GPIO_Port, Enable_B_Pin);
 
   ir_init();
 

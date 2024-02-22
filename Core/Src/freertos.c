@@ -31,6 +31,7 @@
 #include <usart.h>
 #include <tim.h>
 #include "ir.h"
+#include "engine.h"
 
 /* USER CODE END Includes */
 
@@ -75,7 +76,7 @@ osThreadId_t Task4_UltrasoundSensorHandle;
 const osThreadAttr_t Task4_UltrasoundSensor_attributes = {
   .name = "Task4_UltrasoundSensor",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for Task2_UsartReceiving */
 osThreadId_t Task2_UsartReceivingHandle;
@@ -84,45 +85,17 @@ const osThreadAttr_t Task2_UsartReceiving_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for Task5_MoveForward */
-osThreadId_t Task5_MoveForwardHandle;
-const osThreadAttr_t Task5_MoveForward_attributes = {
-  .name = "Task5_MoveForward",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for Task6_StopMoving */
-osThreadId_t Task6_StopMovingHandle;
-const osThreadAttr_t Task6_StopMoving_attributes = {
-  .name = "Task6_StopMoving",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for Task7_TurnLeft */
-osThreadId_t Task7_TurnLeftHandle;
-const osThreadAttr_t Task7_TurnLeft_attributes = {
-  .name = "Task7_TurnLeft",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for Task8_TurnRight */
-osThreadId_t Task8_TurnRightHandle;
-const osThreadAttr_t Task8_TurnRight_attributes = {
-  .name = "Task8_TurnRight",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for Task9_MoveBackward */
-osThreadId_t Task9_MoveBackwardHandle;
-const osThreadAttr_t Task9_MoveBackward_attributes = {
-  .name = "Task9_MoveBackward",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
 /* Definitions for Task10_IR_CommandsDetection */
 osThreadId_t Task10_IR_CommandsDetectionHandle;
 const osThreadAttr_t Task10_IR_CommandsDetection_attributes = {
   .name = "Task10_IR_CommandsDetection",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
+/* Definitions for Task11_EngineTask */
+osThreadId_t Task11_EngineTaskHandle;
+const osThreadAttr_t Task11_EngineTask_attributes = {
+  .name = "Task11_EngineTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
@@ -131,10 +104,20 @@ osMessageQueueId_t Queue1_CommandsHandle;
 const osMessageQueueAttr_t Queue1_Commands_attributes = {
   .name = "Queue1_Commands"
 };
+/* Definitions for Queue02_EngineCommands */
+osMessageQueueId_t Queue02_EngineCommandsHandle;
+const osMessageQueueAttr_t Queue02_EngineCommands_attributes = {
+  .name = "Queue02_EngineCommands"
+};
 /* Definitions for Semaphore1_IR_Interrupt */
 osSemaphoreId_t Semaphore1_IR_InterruptHandle;
 const osSemaphoreAttr_t Semaphore1_IR_Interrupt_attributes = {
   .name = "Semaphore1_IR_Interrupt"
+};
+/* Definitions for Semaphore2_IR_Engine */
+osSemaphoreId_t Semaphore2_IR_EngineHandle;
+const osSemaphoreAttr_t Semaphore2_IR_Engine_attributes = {
+  .name = "Semaphore2_IR_Engine"
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -160,12 +143,8 @@ void StartDefaultTask(void *argument);
 void CommandDetection(void *argument);
 void UltrasoundSensor(void *argument);
 void UsartReceiving(void *argument);
-void MoveForward(void *argument);
-void StopMoving(void *argument);
-void TurnLeft(void *argument);
-void TurnRight(void *argument);
-void MoveBackward(void *argument);
 void IR_CommandsDetection(void *argument);
+void EngineTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -187,6 +166,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of Semaphore1_IR_Interrupt */
   Semaphore1_IR_InterruptHandle = osSemaphoreNew(1, 1, &Semaphore1_IR_Interrupt_attributes);
 
+  /* creation of Semaphore2_IR_Engine */
+  Semaphore2_IR_EngineHandle = osSemaphoreNew(1, 1, &Semaphore2_IR_Engine_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
@@ -198,6 +180,9 @@ void MX_FREERTOS_Init(void) {
   /* Create the queue(s) */
   /* creation of Queue1_Commands */
   Queue1_CommandsHandle = osMessageQueueNew (10, 20, &Queue1_Commands_attributes);
+
+  /* creation of Queue02_EngineCommands */
+  Queue02_EngineCommandsHandle = osMessageQueueNew (10, 10, &Queue02_EngineCommands_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -216,25 +201,14 @@ void MX_FREERTOS_Init(void) {
   /* creation of Task2_UsartReceiving */
   Task2_UsartReceivingHandle = osThreadNew(UsartReceiving, NULL, &Task2_UsartReceiving_attributes);
 
-  /* creation of Task5_MoveForward */
-  //Task5_MoveForwardHandle = osThreadNew(MoveForward, NULL, &Task5_MoveForward_attributes);
-
-  /* creation of Task6_StopMoving */
-  //Task6_StopMovingHandle = osThreadNew(StopMoving, NULL, &Task6_StopMoving_attributes);
-
-  /* creation of Task7_TurnLeft */
-  //Task7_TurnLeftHandle = osThreadNew(TurnLeft, NULL, &Task7_TurnLeft_attributes);
-
-  /* creation of Task8_TurnRight */
-  //Task8_TurnRightHandle = osThreadNew(TurnRight, NULL, &Task8_TurnRight_attributes);
-
-  /* creation of Task9_MoveBackward */
-  //Task9_MoveBackwardHandle = osThreadNew(MoveBackward, NULL, &Task9_MoveBackward_attributes);
-
   /* creation of Task10_IR_CommandsDetection */
   Task10_IR_CommandsDetectionHandle = osThreadNew(IR_CommandsDetection, NULL, &Task10_IR_CommandsDetection_attributes);
 
+  /* creation of Task11_EngineTask */
+  Task11_EngineTaskHandle = osThreadNew(EngineTask, NULL, &Task11_EngineTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
+
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -311,8 +285,12 @@ void UltrasoundSensor(void *argument)
 
 	uint32_t start = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_1);
 	uint32_t stop = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2);
-	printf("%.1f cm\n", (stop - start) / 58.0f);
-	osDelay(1000);
+	uint32_t distance = (stop - start) / 58.0f;
+	if(distance < 15){
+
+	}
+
+	osDelay(100);
 
   }
   osThreadTerminate(NULL);
@@ -377,123 +355,6 @@ void UsartReceiving(void *argument)
   /* USER CODE END UsartReceiving */
 }
 
-/* USER CODE BEGIN Header_MoveForward */
-/**
-* @brief Function implementing the Task5_MoveForward thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_MoveForward */
-void MoveForward(void *argument)
-{
-  /* USER CODE BEGIN MoveForward */
-
-  /* Infinite loop */
-  for(;;)
-  {
-    HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
-
-    osDelay(1);
-  }
-  osThreadTerminate(NULL);
-  /* USER CODE END MoveForward */
-}
-
-/* USER CODE BEGIN Header_StopMoving */
-/**
-* @brief Function implementing the Task6_StopMoving thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StopMoving */
-void StopMoving(void *argument)
-{
-  /* USER CODE BEGIN StopMoving */
-  /* Infinite loop */
-  for(;;)
-  {
-	HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
-    osDelay(1);
-  }
-  osThreadTerminate(NULL);
-  /* USER CODE END StopMoving */
-}
-
-/* USER CODE BEGIN Header_TurnLeft */
-/**
-* @brief Function implementing the Task7_TurnLeft thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_TurnLeft */
-void TurnLeft(void *argument)
-{
-  /* USER CODE BEGIN TurnLeft */
-  /* Infinite loop */
-  for(;;)
-  {
-		HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_RESET);
-		osDelay(1);
-  }
-  osThreadTerminate(NULL);
-  /* USER CODE END TurnLeft */
-}
-
-/* USER CODE BEGIN Header_TurnRight */
-/**
-* @brief Function implementing the Task8_TurnRight thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_TurnRight */
-void TurnRight(void *argument)
-{
-  /* USER CODE BEGIN TurnRight */
-  /* Infinite loop */
-  for(;;)
-  {
-		HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_SET);
-		osDelay(1);
-  }
-  osThreadTerminate(NULL);
-  /* USER CODE END TurnRight */
-}
-
-/* USER CODE BEGIN Header_MoveBackward */
-/**
-* @brief Function implementing the Task9_MoveBackward thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_MoveBackward */
-void MoveBackward(void *argument)
-{
-  /* USER CODE BEGIN MoveBackward */
-  /* Infinite loop */
-  for(;;)
-  {
-	HAL_GPIO_WritePin(Engine_IN1_GPIO_Port, Engine_IN1_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(Engine_IN3_GPIO_Port, Engine_IN3_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(Engine_IN2_GPIO_Port, Engine_IN2_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(Engine_IN4_GPIO_Port, Engine_IN4_Pin, GPIO_PIN_RESET);
-    osDelay(1);
-  }
-  osThreadTerminate(NULL);
-  /* USER CODE END MoveBackward */
-}
-
 /* USER CODE BEGIN Header_IR_CommandsDetection */
 /**
 * @brief Function implementing the Task10_IR_CommandsDetection thread.
@@ -512,55 +373,69 @@ void IR_CommandsDetection(void *argument)
 
 	  		osSemaphoreAcquire(Semaphore1_IR_InterruptHandle, 0);
 
+
 	  		int value = ir_read();
+	  		engine_state state = STOP;
 
 	  		switch (value) {
 	  			  case IR_CODE_PLUS:
-	  					  osThreadTerminate(Task6_StopMovingHandle);
-	  					  osThreadTerminate(Task7_TurnLeftHandle);
-	  					  osThreadTerminate(Task8_TurnRightHandle);
-	  					  osThreadTerminate(Task9_MoveBackwardHandle);
-	  					  Task5_MoveForwardHandle = osThreadNew(MoveForward, NULL, &Task5_MoveForward_attributes);
+	  				  	  state = MOVE_FORWARD;
+	  				  	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
 	  			      break;
 	  			    case IR_CODE_FORWARD:
-	  					  osThreadTerminate(Task5_MoveForwardHandle);
-	  					  osThreadTerminate(Task6_StopMovingHandle);
-	  					  osThreadTerminate(Task7_TurnLeftHandle);
-	  					  osThreadTerminate(Task9_MoveBackwardHandle);
-	  					  Task8_TurnRightHandle = osThreadNew(TurnRight, NULL, &Task8_TurnRight_attributes);
+	  			    	  state = TURN_RIGHT;
+	  			    	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
 	  			      break;
 	  			    case IR_CODE_MINUS:
-	  					  osThreadTerminate(Task5_MoveForwardHandle);
-	  					  osThreadTerminate(Task6_StopMovingHandle);
-	  					  osThreadTerminate(Task7_TurnLeftHandle);
-	  					  osThreadTerminate(Task8_TurnRightHandle);
-	  					  Task9_MoveBackwardHandle = osThreadNew(MoveBackward, NULL, &Task9_MoveBackward_attributes);
+	  			    	  state = MOVE_BACKWARD;
+	  			    	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
 	  			      break;
 	  			    case IR_CODE_REWIND:
-	  					  osThreadTerminate(Task5_MoveForwardHandle);
-	  					  osThreadTerminate(Task6_StopMovingHandle);
-	  					  osThreadTerminate(Task8_TurnRightHandle);
-	  					  osThreadTerminate(Task9_MoveBackwardHandle);
-	  					  Task7_TurnLeftHandle = osThreadNew(TurnLeft, NULL, &Task7_TurnLeft_attributes);
+	  			    	  state = TURN_LEFT;
+	  			    	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
 	  			      break;
 	  			    case IR_CODE_PLAY:
-	  					  osThreadTerminate(Task5_MoveForwardHandle);
-	  					  osThreadTerminate(Task7_TurnLeftHandle);
-	  					  osThreadTerminate(Task8_TurnRightHandle);
-	  					  osThreadTerminate(Task9_MoveBackwardHandle);
-	  					  Task6_StopMovingHandle = osThreadNew(StopMoving, NULL, &Task6_StopMoving_attributes);
+	  			    	  state = STOP;
+	  			    	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
 	  			      break;
 	  			    default:
 	  			    	printf("Inna komenda");
 	  			    	break;
 
 	  			    }
+	  		osSemaphoreRelease(Semaphore2_IR_EngineHandle);
 	  	}
 
     osDelay(1);
   }
 
   /* USER CODE END IR_CommandsDetection */
+}
+
+/* USER CODE BEGIN Header_EngineTask */
+/**
+* @brief Function implementing the Task11_EngineTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_EngineTask */
+void EngineTask(void *argument)
+{
+  /* USER CODE BEGIN EngineTask */
+	engine_state IR_ReceivedValue;
+  /* Infinite loop */
+  for(;;)
+  {
+	  if(osSemaphoreGetCount(Semaphore2_IR_EngineHandle) != 0){
+		  osSemaphoreAcquire(Semaphore2_IR_EngineHandle, 0);
+		  osMessageQueueGet(Queue02_EngineCommandsHandle, &IR_ReceivedValue, 0, osWaitForever);
+		  Engine(IR_ReceivedValue);
+	  }
+
+    osDelay(1);
+  }
+  osThreadTerminate(NULL);
+  /* USER CODE END EngineTask */
 }
 
 /* Private application code --------------------------------------------------*/
