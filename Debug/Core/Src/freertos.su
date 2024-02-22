@@ -3,6 +3,6 @@
 ../Core/Src/freertos.c:228:6:StartDefaultTask	16	static
 ../Core/Src/freertos.c:246:6:CommandDetection	40	static
 ../Core/Src/freertos.c:275:6:UltrasoundSensor	32	static
-../Core/Src/freertos.c:307:6:UsartReceiving	16	static
-../Core/Src/freertos.c:365:6:IR_CommandsDetection	24	static
-../Core/Src/freertos.c:422:6:EngineTask	24	static
+../Core/Src/freertos.c:311:6:UsartReceiving	16	static
+../Core/Src/freertos.c:369:6:IR_CommandsDetection	24	static
+../Core/Src/freertos.c:429:6:EngineTask	24	static

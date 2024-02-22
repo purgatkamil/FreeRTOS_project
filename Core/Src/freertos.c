@@ -76,7 +76,7 @@ osThreadId_t Task4_UltrasoundSensorHandle;
 const osThreadAttr_t Task4_UltrasoundSensor_attributes = {
   .name = "Task4_UltrasoundSensor",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Task2_UsartReceiving */
 osThreadId_t Task2_UsartReceivingHandle;
@@ -286,11 +286,15 @@ void UltrasoundSensor(void *argument)
 	uint32_t start = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_1);
 	uint32_t stop = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2);
 	uint32_t distance = (stop - start) / 58.0f;
-	if(distance < 15){
-
+	if(distance < 20){
+		engine_state state = STOP;
+		osSemaphoreRelease(Semaphore1_IR_InterruptHandle);
+		osSemaphoreAcquire(Semaphore1_IR_InterruptHandle, 0);
+		osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
+		osSemaphoreRelease(Semaphore2_IR_EngineHandle);
 	}
 
-	osDelay(100);
+	osDelay(1);
 
   }
   osThreadTerminate(NULL);
@@ -377,33 +381,36 @@ void IR_CommandsDetection(void *argument)
 	  		int value = ir_read();
 	  		engine_state state = STOP;
 
-	  		switch (value) {
-	  			  case IR_CODE_PLUS:
-	  				  	  state = MOVE_FORWARD;
-	  				  	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
-	  			      break;
-	  			    case IR_CODE_FORWARD:
-	  			    	  state = TURN_RIGHT;
-	  			    	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
-	  			      break;
-	  			    case IR_CODE_MINUS:
-	  			    	  state = MOVE_BACKWARD;
-	  			    	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
-	  			      break;
-	  			    case IR_CODE_REWIND:
-	  			    	  state = TURN_LEFT;
-	  			    	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
-	  			      break;
-	  			    case IR_CODE_PLAY:
-	  			    	  state = STOP;
-	  			    	  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
-	  			      break;
-	  			    default:
-	  			    	printf("Inna komenda");
-	  			    	break;
 
-	  			    }
-	  		osSemaphoreRelease(Semaphore2_IR_EngineHandle);
+				switch (value) {
+
+					    case IR_CODE_PLUS:
+							  state = MOVE_FORWARD;
+							  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
+						  break;
+						case IR_CODE_FORWARD:
+							  state = TURN_RIGHT;
+							  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
+						  break;
+						case IR_CODE_MINUS:
+							  state = MOVE_BACKWARD;
+							  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
+						  break;
+						case IR_CODE_REWIND:
+							  state = TURN_LEFT;
+							  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
+						  break;
+						case IR_CODE_PLAY:
+							  state = STOP;
+							  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
+						  break;
+						default:
+							printf("Inna komenda");
+							break;
+						}
+
+					osSemaphoreRelease(Semaphore2_IR_EngineHandle);
+
 	  	}
 
     osDelay(1);
