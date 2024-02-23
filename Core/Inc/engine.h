@@ -15,13 +15,21 @@ typedef enum {
 	STOP
 }engine_state;
 
+typedef enum {
+	KEEP,
+	FASTER,
+	SLOWER
+}engine_speed;
+
 void Engine(engine_state state);
-void EnginesInit(GPIO_TypeDef* EN1_Port, uint16_t EN1_Pin, GPIO_TypeDef* EN2_Port, uint16_t EN2_Pin);
+void EnginesInit();
 void EngineMoveForward();
 void EngineMoveBackward();
 void EngineStop();
 void EngineTurnRight();
 void EngineTurnLeft();
+void EnginesSetSpeed(uint8_t speedLeft, uint8_t speedRight);
+void EnginesSpeed(engine_speed engine_speed);
 
 
 #endif /* INC_ENGINE_H_ */

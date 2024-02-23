@@ -109,6 +109,11 @@ osMessageQueueId_t Queue02_EngineCommandsHandle;
 const osMessageQueueAttr_t Queue02_EngineCommands_attributes = {
   .name = "Queue02_EngineCommands"
 };
+/* Definitions for Queue03_EngineSpeed */
+osMessageQueueId_t Queue03_EngineSpeedHandle;
+const osMessageQueueAttr_t Queue03_EngineSpeed_attributes = {
+  .name = "Queue03_EngineSpeed"
+};
 /* Definitions for Timer1_USSensorBlocking */
 osTimerId_t Timer1_USSensorBlockingHandle;
 const osTimerAttr_t Timer1_USSensorBlocking_attributes = {
@@ -202,6 +207,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of Queue02_EngineCommands */
   Queue02_EngineCommandsHandle = osMessageQueueNew (10, 10, &Queue02_EngineCommands_attributes);
+
+  /* creation of Queue03_EngineSpeed */
+  Queue03_EngineSpeedHandle = osMessageQueueNew (10, 10, &Queue03_EngineSpeed_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -400,8 +408,23 @@ void IR_CommandsDetection(void *argument)
 
 	  		int value = ir_read();
 	  		engine_state state = STOP;
+	  		engine_speed speed = KEEP;
 
+	  		if(value == IR_CODE_TEST || value == IR_CODE_0){
+	  			switch (value){
+					   case IR_CODE_TEST:
+						     speed = FASTER;
+						     osMessageQueuePut(Queue03_EngineSpeedHandle, &speed, 0, 200);
+					     break;
+					   case IR_CODE_0  :
+						     speed = SLOWER;
+						     osMessageQueuePut(Queue03_EngineSpeedHandle, &speed, 0, 200);
+					     break;
+					   default:
 
+					   	 break;
+	  			}
+	  		}else{
 				switch (value) {
 
 					    case IR_CODE_PLUS:
@@ -428,9 +451,8 @@ void IR_CommandsDetection(void *argument)
 							//printf("Inna komenda");
 							break;
 						}
-
-					osSemaphoreRelease(Semaphore2_IR_EngineHandle);
-
+	  		}
+	  		osSemaphoreRelease(Semaphore2_IR_EngineHandle);
 	  	}
 
     osDelay(1);
@@ -449,17 +471,26 @@ void IR_CommandsDetection(void *argument)
 void EngineTask(void *argument)
 {
   /* USER CODE BEGIN EngineTask */
-	engine_state IR_ReceivedValue;
+	engine_state IR_ReceivedValue_state;
+	engine_speed IR_ReceivedValue_speed;
   /* Infinite loop */
   for(;;)
   {
 	  if(osSemaphoreGetCount(Semaphore2_IR_EngineHandle) != 0){
+
 		  osSemaphoreAcquire(Semaphore2_IR_EngineHandle, 0);
-		  osMessageQueueGet(Queue02_EngineCommandsHandle, &IR_ReceivedValue, 0, osWaitForever);
-		  Engine(IR_ReceivedValue);
-		  if(IR_ReceivedValue == TURN_RIGHT || IR_ReceivedValue == TURN_LEFT){
-			 osTimerStart(Timer2_TurningTimerHandle, 60 / portTICK_PERIOD_MS);
+
+		  if(osMessageQueueGetCount(Queue02_EngineCommandsHandle) != 0){
+			  osMessageQueueGet(Queue02_EngineCommandsHandle, &IR_ReceivedValue_state, 0, osWaitForever);
+			  Engine(IR_ReceivedValue_state);
+			  if(IR_ReceivedValue_state == TURN_RIGHT || IR_ReceivedValue_state == TURN_LEFT){
+				 osTimerStart(Timer2_TurningTimerHandle, 60 / portTICK_PERIOD_MS);
+			  }
+		  }else if(osMessageQueueGetCount(Queue03_EngineSpeedHandle) != 0){
+			  osMessageQueueGet(Queue03_EngineSpeedHandle, &IR_ReceivedValue_speed, 0, osWaitForever);
+			  EnginesSpeed(IR_ReceivedValue_speed);
 		  }
+
 	  }
 
     osDelay(1);

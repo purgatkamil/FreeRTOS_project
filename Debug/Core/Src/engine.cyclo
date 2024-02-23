@@ -1,7 +1,9 @@
 ../Core/Src/engine.c:4:6:Engine	6
 ../Core/Src/engine.c:28:6:EnginesInit	1
-../Core/Src/engine.c:33:6:EngineMoveForward	1
-../Core/Src/engine.c:40:6:EngineMoveBackward	1
-../Core/Src/engine.c:47:6:EngineStop	1
-../Core/Src/engine.c:54:6:EngineTurnRight	1
-../Core/Src/engine.c:61:6:EngineTurnLeft	1
+../Core/Src/engine.c:35:6:EnginesSpeed	7
+../Core/Src/engine.c:55:6:EnginesSetSpeed	3
+../Core/Src/engine.c:67:6:EngineMoveForward	1
+../Core/Src/engine.c:74:6:EngineMoveBackward	1
+../Core/Src/engine.c:81:6:EngineStop	1
+../Core/Src/engine.c:88:6:EngineTurnRight	1
+../Core/Src/engine.c:95:6:EngineTurnLeft	1

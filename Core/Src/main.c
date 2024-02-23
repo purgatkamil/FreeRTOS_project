@@ -114,8 +114,10 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  EnginesInit(Enable_A_GPIO_Port, Enable_A_Pin, Enable_B_GPIO_Port, Enable_B_Pin);
+
+  EnginesInit();
 
   ir_init();
 

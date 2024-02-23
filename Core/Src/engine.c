@@ -25,9 +25,43 @@ void Engine(engine_state state){
 }
 
 
-void EnginesInit(GPIO_TypeDef* EN1_Port, uint16_t EN1_Pin, GPIO_TypeDef* EN2_Port, uint16_t EN2_Pin){
-    HAL_GPIO_WritePin(EN1_Port, EN1_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(EN2_Port, EN2_Pin, GPIO_PIN_SET);
+void EnginesInit(){
+	HAL_TIM_Base_Start(&htim4);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+	EnginesSetSpeed(100, 100);
+}
+
+void EnginesSpeed(engine_speed engine_speed){
+	static int speed = 100;
+
+	switch (engine_speed){
+		case KEEP:
+			speed = speed;
+			break;
+		case FASTER:
+			if(speed < 100)
+				speed += 10;
+			break;
+		case SLOWER:
+			if(speed > 0)
+				speed -= 10;
+			break;
+	}
+
+	EnginesSetSpeed(speed, speed);
+}
+
+void EnginesSetSpeed(uint8_t speedLeft, uint8_t speedRight){
+	if(speedLeft >= htim4.Instance->ARR){
+		speedLeft = htim4.Instance->ARR;
+	}
+	__HAL_TIM_SetCompare(&htim4, TIM_CHANNEL_1, speedLeft);
+
+	if(speedRight >= htim4.Instance->ARR){
+		speedRight = htim4.Instance->ARR;
+	}
+	__HAL_TIM_SetCompare(&htim4, TIM_CHANNEL_2, speedRight);
 }
 
 void EngineMoveForward(){
