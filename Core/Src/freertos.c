@@ -114,6 +114,11 @@ osTimerId_t Timer1_USSensorBlockingHandle;
 const osTimerAttr_t Timer1_USSensorBlocking_attributes = {
   .name = "Timer1_USSensorBlocking"
 };
+/* Definitions for Timer2_TurningTimer */
+osTimerId_t Timer2_TurningTimerHandle;
+const osTimerAttr_t Timer2_TurningTimer_attributes = {
+  .name = "Timer2_TurningTimer"
+};
 /* Definitions for Semaphore1_IR_Interrupt */
 osSemaphoreId_t Semaphore1_IR_InterruptHandle;
 const osSemaphoreAttr_t Semaphore1_IR_Interrupt_attributes = {
@@ -151,6 +156,7 @@ void UsartReceiving(void *argument);
 void IR_CommandsDetection(void *argument);
 void EngineTask(void *argument);
 void Callback01(void *argument);
+void Callback02(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -182,6 +188,9 @@ void MX_FREERTOS_Init(void) {
   /* Create the timer(s) */
   /* creation of Timer1_USSensorBlocking */
   Timer1_USSensorBlockingHandle = osTimerNew(Callback01, osTimerOnce, NULL, &Timer1_USSensorBlocking_attributes);
+
+  /* creation of Timer2_TurningTimer */
+  Timer2_TurningTimerHandle = osTimerNew(Callback02, osTimerOnce, NULL, &Timer2_TurningTimer_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -448,6 +457,9 @@ void EngineTask(void *argument)
 		  osSemaphoreAcquire(Semaphore2_IR_EngineHandle, 0);
 		  osMessageQueueGet(Queue02_EngineCommandsHandle, &IR_ReceivedValue, 0, osWaitForever);
 		  Engine(IR_ReceivedValue);
+		  if(IR_ReceivedValue == TURN_RIGHT || IR_ReceivedValue == TURN_LEFT){
+			 osTimerStart(Timer2_TurningTimerHandle, 60 / portTICK_PERIOD_MS);
+		  }
 	  }
 
     osDelay(1);
@@ -461,6 +473,16 @@ void Callback01(void *argument)
 {
   /* USER CODE BEGIN Callback01 */
   /* USER CODE END Callback01 */
+}
+
+/* Callback02 function */
+void Callback02(void *argument)
+{
+  /* USER CODE BEGIN Callback02 */
+
+	Engine(STOP);
+
+  /* USER CODE END Callback02 */
 }
 
 /* Private application code --------------------------------------------------*/
