@@ -109,6 +109,11 @@ osMessageQueueId_t Queue02_EngineCommandsHandle;
 const osMessageQueueAttr_t Queue02_EngineCommands_attributes = {
   .name = "Queue02_EngineCommands"
 };
+/* Definitions for Timer1_USSensorBlocking */
+osTimerId_t Timer1_USSensorBlockingHandle;
+const osTimerAttr_t Timer1_USSensorBlocking_attributes = {
+  .name = "Timer1_USSensorBlocking"
+};
 /* Definitions for Semaphore1_IR_Interrupt */
 osSemaphoreId_t Semaphore1_IR_InterruptHandle;
 const osSemaphoreAttr_t Semaphore1_IR_Interrupt_attributes = {
@@ -145,6 +150,7 @@ void UltrasoundSensor(void *argument);
 void UsartReceiving(void *argument);
 void IR_CommandsDetection(void *argument);
 void EngineTask(void *argument);
+void Callback01(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -172,6 +178,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* creation of Timer1_USSensorBlocking */
+  Timer1_USSensorBlockingHandle = osTimerNew(Callback01, osTimerOnce, NULL, &Timer1_USSensorBlocking_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -286,12 +296,13 @@ void UltrasoundSensor(void *argument)
 	uint32_t start = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_1);
 	uint32_t stop = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2);
 	uint32_t distance = (stop - start) / 58.0f;
-	if(distance < 20){
+	if(distance < 20 && !osTimerIsRunning(Timer1_USSensorBlockingHandle)){
 		engine_state state = STOP;
 		osSemaphoreRelease(Semaphore1_IR_InterruptHandle);
 		osSemaphoreAcquire(Semaphore1_IR_InterruptHandle, 0);
 		osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
 		osSemaphoreRelease(Semaphore2_IR_EngineHandle);
+		osTimerStart(Timer1_USSensorBlockingHandle, 2000 / portTICK_PERIOD_MS);
 	}
 
 	osDelay(1);
@@ -405,7 +416,7 @@ void IR_CommandsDetection(void *argument)
 							  osMessageQueuePut(Queue02_EngineCommandsHandle, &state, 0, 200);
 						  break;
 						default:
-							printf("Inna komenda");
+							//printf("Inna komenda");
 							break;
 						}
 
@@ -415,7 +426,7 @@ void IR_CommandsDetection(void *argument)
 
     osDelay(1);
   }
-
+  osThreadTerminate(NULL);
   /* USER CODE END IR_CommandsDetection */
 }
 
@@ -443,6 +454,13 @@ void EngineTask(void *argument)
   }
   osThreadTerminate(NULL);
   /* USER CODE END EngineTask */
+}
+
+/* Callback01 function */
+void Callback01(void *argument)
+{
+  /* USER CODE BEGIN Callback01 */
+  /* USER CODE END Callback01 */
 }
 
 /* Private application code --------------------------------------------------*/

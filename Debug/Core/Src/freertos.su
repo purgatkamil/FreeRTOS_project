@@ -1,8 +1,9 @@
-../Core/Src/freertos.c:125:6:HAL_TIM_IC_CaptureCallback	16	static
-../Core/Src/freertos.c:156:6:MX_FREERTOS_Init	8	static
-../Core/Src/freertos.c:228:6:StartDefaultTask	16	static
-../Core/Src/freertos.c:246:6:CommandDetection	40	static
-../Core/Src/freertos.c:275:6:UltrasoundSensor	32	static
-../Core/Src/freertos.c:311:6:UsartReceiving	16	static
-../Core/Src/freertos.c:369:6:IR_CommandsDetection	24	static
-../Core/Src/freertos.c:429:6:EngineTask	24	static
+../Core/Src/freertos.c:130:6:HAL_TIM_IC_CaptureCallback	16	static
+../Core/Src/freertos.c:162:6:MX_FREERTOS_Init	8	static
+../Core/Src/freertos.c:238:6:StartDefaultTask	16	static
+../Core/Src/freertos.c:256:6:CommandDetection	40	static
+../Core/Src/freertos.c:285:6:UltrasoundSensor	32	static
+../Core/Src/freertos.c:322:6:UsartReceiving	16	static
+../Core/Src/freertos.c:380:6:IR_CommandsDetection	24	static
+../Core/Src/freertos.c:440:6:EngineTask	24	static
+../Core/Src/freertos.c:460:6:Callback01	16	static
