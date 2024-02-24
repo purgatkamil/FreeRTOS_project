@@ -124,6 +124,11 @@ osTimerId_t Timer2_TurningTimerHandle;
 const osTimerAttr_t Timer2_TurningTimer_attributes = {
   .name = "Timer2_TurningTimer"
 };
+/* Definitions for myMutex01 */
+osMutexId_t myMutex01Handle;
+const osMutexAttr_t myMutex01_attributes = {
+  .name = "myMutex01"
+};
 /* Definitions for Semaphore1_IR_Interrupt */
 osSemaphoreId_t Semaphore1_IR_InterruptHandle;
 const osSemaphoreAttr_t Semaphore1_IR_Interrupt_attributes = {
@@ -141,6 +146,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == &htim3)
   {
+
+
 	osSemaphoreRelease(Semaphore1_IR_InterruptHandle);
     switch (HAL_TIM_GetActiveChannel(&htim3))
     {
@@ -174,6 +181,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+  /* Create the mutex(es) */
+  /* creation of myMutex01 */
+  myMutex01Handle = osMutexNew(&myMutex01_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -401,7 +411,10 @@ void IR_CommandsDetection(void *argument)
   for(;;)
   {
 
+
 	  	if(osSemaphoreGetCount(Semaphore1_IR_InterruptHandle) != 0){
+	  		//osMutexRelease(myMutex01Handle);
+
 
 	  		osSemaphoreAcquire(Semaphore1_IR_InterruptHandle, 0);
 
@@ -477,6 +490,9 @@ void EngineTask(void *argument)
   for(;;)
   {
 	  if(osSemaphoreGetCount(Semaphore2_IR_EngineHandle) != 0){
+
+	  	  //osMutexAcquire(myMutex01Handle, 0);
+	  	  //osThreadId_t x = osMutexGetOwner(myMutex01Handle);
 
 		  osSemaphoreAcquire(Semaphore2_IR_EngineHandle, 0);
 
