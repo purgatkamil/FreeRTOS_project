@@ -1347,10 +1347,10 @@ void EnginesSpeed(engine_speed engine_speed){
 			break;
  8000f7e:	e009      	b.n	8000f94 <EnginesSpeed+0x50>
 		case SLOWER:
-			if(speed > 0)
+			if(speed > 50)
  8000f80:	4b0d      	ldr	r3, [pc, #52]	; (8000fb8 <EnginesSpeed+0x74>)
  8000f82:	681b      	ldr	r3, [r3, #0]
- 8000f84:	2b00      	cmp	r3, #0
+ 8000f84:	2b32      	cmp	r3, #50	; 0x32
  8000f86:	dd07      	ble.n	8000f98 <EnginesSpeed+0x54>
 				speed -= 10;
  8000f88:	4b0b      	ldr	r3, [pc, #44]	; (8000fb8 <EnginesSpeed+0x74>)

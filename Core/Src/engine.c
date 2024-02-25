@@ -44,7 +44,7 @@ void EnginesSpeed(engine_speed engine_speed){
 				speed += 10;
 			break;
 		case SLOWER:
-			if(speed > 0)
+			if(speed > 50)
 				speed -= 10;
 			break;
 	}
