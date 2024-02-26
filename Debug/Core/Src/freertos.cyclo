@@ -5,7 +5,7 @@
 ../Core/Src/freertos.c:324:6:UltrasoundSensor	3
 ../Core/Src/freertos.c:361:6:UsartReceiving	6
 ../Core/Src/freertos.c:419:6:IR_CommandsDetection	13
-../Core/Src/freertos.c:496:6:EngineTask	6
-../Core/Src/freertos.c:537:6:GetCompassMeasurement	1
-../Core/Src/freertos.c:550:6:Callback01	1
-../Core/Src/freertos.c:557:6:Callback02	1
+../Core/Src/freertos.c:490:6:EngineTask	6
+../Core/Src/freertos.c:529:6:GetCompassMeasurement	1
+../Core/Src/freertos.c:542:6:Callback01	1
+../Core/Src/freertos.c:549:6:Callback02	1

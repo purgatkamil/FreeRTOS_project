@@ -423,13 +423,7 @@ void IR_CommandsDetection(void *argument)
   for(;;)
   {
 
-
-	  	if(osSemaphoreGetCount(Semaphore1_IR_InterruptHandle) != 0){
-	  		//osMutexRelease(myMutex01Handle);
-
-
-	  		osSemaphoreAcquire(Semaphore1_IR_InterruptHandle, 0);
-
+	  	if(osSemaphoreAcquire(Semaphore1_IR_InterruptHandle, 0) == osOK){
 
 	  		int value = ir_read();
 	  		engine_state state = STOP;
@@ -501,21 +495,16 @@ void EngineTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  if(osSemaphoreGetCount(Semaphore2_IR_EngineHandle) != 0){
+	  if(osSemaphoreAcquire(Semaphore2_IR_EngineHandle, 0) == osOK){
 
 	  	  //osMutexAcquire(myMutex01Handle, 0);
 	  	  //osThreadId_t x = osMutexGetOwner(myMutex01Handle);
-
-		  osSemaphoreAcquire(Semaphore2_IR_EngineHandle, 0);
-
-		  if(osMessageQueueGetCount(Queue02_EngineCommandsHandle) != 0){
-			  osMessageQueueGet(Queue02_EngineCommandsHandle, &IR_ReceivedValue_state, 0, osWaitForever);
+		  if(osMessageQueueGet(Queue02_EngineCommandsHandle, &IR_ReceivedValue_state, 0, 200) == osOK){
 			  Engine(IR_ReceivedValue_state);
 			  if(IR_ReceivedValue_state == TURN_RIGHT || IR_ReceivedValue_state == TURN_LEFT){
 				 osTimerStart(Timer2_TurningTimerHandle, 60 / portTICK_PERIOD_MS);
 			  }
-		  }else if(osMessageQueueGetCount(Queue03_EngineSpeedHandle) != 0){
-			  osMessageQueueGet(Queue03_EngineSpeedHandle, &IR_ReceivedValue_speed, 0, osWaitForever);
+		  }else if(osMessageQueueGet(Queue03_EngineSpeedHandle, &IR_ReceivedValue_speed, 0, 200) == osOK){
 			  EnginesSpeed(IR_ReceivedValue_speed);
 		  }
 
