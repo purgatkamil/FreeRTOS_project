@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include "ir.h"
 #include "engine.h"
+#include "compass.h"
 
 //--------------------------------OWN LIBRARIES--------------------------------
 
