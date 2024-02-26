@@ -1,0 +1,4 @@
+../Core/Src/compass.c:10:6:writeToRegister	32	static
+../Core/Src/compass.c:15:10:readFromRegister	32	static
+../Core/Src/compass.c:24:9:convertToDecimal	24	static
+../Core/Src/compass.c:36:6:singleMeasurement	32	static

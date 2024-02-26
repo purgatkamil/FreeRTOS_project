@@ -32,6 +32,7 @@
 #include <tim.h>
 #include "ir.h"
 #include "engine.h"
+#include "compass.h"
 
 /* USER CODE END Includes */
 
@@ -96,6 +97,13 @@ const osThreadAttr_t Task10_IR_CommandsDetection_attributes = {
 osThreadId_t Task11_EngineTaskHandle;
 const osThreadAttr_t Task11_EngineTask_attributes = {
   .name = "Task11_EngineTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Task07_GetCompassMeasurement */
+osThreadId_t Task07_GetCompassMeasurementHandle;
+const osThreadAttr_t Task07_GetCompassMeasurement_attributes = {
+  .name = "Task07_GetCompassMeasurement",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
@@ -167,6 +175,7 @@ void UltrasoundSensor(void *argument);
 void UsartReceiving(void *argument);
 void IR_CommandsDetection(void *argument);
 void EngineTask(void *argument);
+void GetCompassMeasurement(void *argument);
 void Callback01(void *argument);
 void Callback02(void *argument);
 
@@ -243,6 +252,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of Task11_EngineTask */
   Task11_EngineTaskHandle = osThreadNew(EngineTask, NULL, &Task11_EngineTask_attributes);
+
+  /* creation of Task07_GetCompassMeasurement */
+  Task07_GetCompassMeasurementHandle = osThreadNew(GetCompassMeasurement, NULL, &Task07_GetCompassMeasurement_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 
@@ -513,6 +525,25 @@ void EngineTask(void *argument)
   }
   osThreadTerminate(NULL);
   /* USER CODE END EngineTask */
+}
+
+/* USER CODE BEGIN Header_GetCompassMeasurement */
+/**
+* @brief Function implementing the Task07_GetCompassMeasurement thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_GetCompassMeasurement */
+void GetCompassMeasurement(void *argument)
+{
+  /* USER CODE BEGIN GetCompassMeasurement */
+  /* Infinite loop */
+  for(;;)
+  {
+
+    osDelay(1);
+  }
+  /* USER CODE END GetCompassMeasurement */
 }
 
 /* Callback01 function */
