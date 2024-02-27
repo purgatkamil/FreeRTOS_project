@@ -107,6 +107,13 @@ const osThreadAttr_t Task07_GetCompassMeasurement_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for Task08_TaskChecking */
+osThreadId_t Task08_TaskCheckingHandle;
+const osThreadAttr_t Task08_TaskChecking_attributes = {
+  .name = "Task08_TaskChecking",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for Queue1_Commands */
 osMessageQueueId_t Queue1_CommandsHandle;
 const osMessageQueueAttr_t Queue1_Commands_attributes = {
@@ -176,6 +183,7 @@ void UsartReceiving(void *argument);
 void IR_CommandsDetection(void *argument);
 void EngineTask(void *argument);
 void GetCompassMeasurement(void *argument);
+void TaskChecking(void *argument);
 void Callback01(void *argument);
 void Callback02(void *argument);
 
@@ -255,6 +263,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of Task07_GetCompassMeasurement */
   Task07_GetCompassMeasurementHandle = osThreadNew(GetCompassMeasurement, NULL, &Task07_GetCompassMeasurement_attributes);
+
+  /* creation of Task08_TaskChecking */
+  Task08_TaskCheckingHandle = osThreadNew(TaskChecking, NULL, &Task08_TaskChecking_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 
@@ -533,6 +544,34 @@ void GetCompassMeasurement(void *argument)
     osDelay(1);
   }
   /* USER CODE END GetCompassMeasurement */
+}
+
+/* USER CODE BEGIN Header_TaskChecking */
+/**
+* @brief Function implementing the Task08_TaskChecking thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TaskChecking */
+void TaskChecking(void *argument)
+{
+  /* USER CODE BEGIN TaskChecking */
+  /* Infinite loop */
+  for(;;)
+  {
+	  if(Task10_IR_CommandsDetectionHandle == NULL){
+		  Task10_IR_CommandsDetectionHandle = osThreadNew(IR_CommandsDetection, NULL, &Task10_IR_CommandsDetection_attributes);
+	  }
+	  if(Task4_UltrasoundSensorHandle == NULL){
+		  Task4_UltrasoundSensorHandle = osThreadNew(UltrasoundSensor, NULL, &Task4_UltrasoundSensor_attributes);
+	  }
+	  if(Task11_EngineTaskHandle == NULL){
+		  Task11_EngineTaskHandle = osThreadNew(EngineTask, NULL, &Task11_EngineTask_attributes);
+	  }
+
+    osDelay(1);
+  }
+  /* USER CODE END TaskChecking */
 }
 
 /* Callback01 function */
